@@ -1,8 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { NutrientData } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 // Schema for structured output
 const foodAnalysisSchema = {
   type: Type.OBJECT,
@@ -40,6 +38,8 @@ export const analyzeFoodWithGemini = async (
   imageBase64?: string
 ): Promise<{ name: string } & NutrientData> => {
   
+  // Initialize AI client here to ensure env vars are loaded
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = "gemini-2.5-flash";
   const parts: any[] = [];
 
