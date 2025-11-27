@@ -1,0 +1,7 @@
+{
+  "name": "AI 智能卡路里日記_deploy",
+  "description": "使用 Gemini AI 自動識別食物照片或文字描述，快速記錄每日卡路里與營養攝取，輕鬆管理飲食健康。",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
