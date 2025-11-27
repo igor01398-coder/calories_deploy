@@ -316,9 +316,7 @@ export default function App() {
     return waterLogs
       .filter(log => {
          const logDate = new Date(log.timestamp);
-         const today = new Date(); // Water is usually tracked for "Today"
-         // If we want water history, we should use selectedDate. 
-         // But usually water is "Today's hydration". Let's use selectedDate to allow history viewing.
+         // Filter for selected date
          return (
             logDate.getFullYear() === selectedDate.getFullYear() &&
             logDate.getMonth() === selectedDate.getMonth() &&
@@ -346,10 +344,6 @@ export default function App() {
     const totalConsumed = thisWeekEntries.reduce((sum, e) => sum + e.calories, 0);
     
     // Calculate total Goal since Monday
-    // Days passed including today (partial)
-    // Roughly: number of days * dailyGoal. 
-    // To be precise: match days with entries? 
-    // Let's simplify: (Days passed * dailyGoal) - Consumed.
     const now = new Date();
     const daysPassed = Math.max(1, Math.floor((now.getTime() - monday.getTime()) / (1000 * 60 * 60 * 24)) + 1);
     const totalGoal = daysPassed * dailyGoal;

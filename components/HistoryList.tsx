@@ -28,6 +28,19 @@ export const HistoryList: React.FC<HistoryListProps> = ({ entries, onDelete, onU
     onDateChange(newDate);
   };
 
+  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value) {
+      onDateChange(new Date(e.target.value));
+    }
+  };
+
+  // Format date for input value (YYYY-MM-DD) to handle timezone correctly
+  const d = new Date(selectedDate);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const dateInputValue = `${year}-${month}-${day}`;
+
   const isToday = new Date(selectedDate).setHours(0,0,0,0) === new Date().setHours(0,0,0,0);
   const formattedDate = new Date(selectedDate).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
 
@@ -86,23 +99,35 @@ export const HistoryList: React.FC<HistoryListProps> = ({ entries, onDelete, onU
   return (
     <div className="space-y-6">
       {/* Date Header */}
-      <div className="flex items-center justify-between px-2">
+      <div className="flex items-center justify-between px-1 gap-3">
         <button 
           onClick={() => changeDate(-1)}
-          className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+          className="p-3 bg-white border border-slate-200 shadow-sm rounded-2xl text-slate-500 hover:text-secondary hover:border-secondary hover:bg-blue-50 transition-all active:scale-95"
+          title="上一天"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-6 h-6" />
         </button>
         
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-2 font-bold text-slate-800 text-lg">
-            <Calendar className="w-4 h-4 text-secondary" />
-            {isToday ? '今日記錄' : formattedDate}
+        <div className="flex flex-col items-center flex-1">
+          <div className="relative group w-full">
+            <div className="flex items-center justify-center gap-2 font-bold text-slate-700 text-lg cursor-pointer bg-white border border-slate-200 shadow-sm px-4 py-2.5 rounded-2xl group-hover:border-secondary group-hover:text-secondary group-hover:bg-blue-50 transition-all">
+              <Calendar className="w-5 h-5 text-slate-400 group-hover:text-secondary transition-colors" />
+              <span>{isToday ? '今日記錄' : formattedDate}</span>
+            </div>
+            {/* Hidden date input overlaid for picker functionality */}
+            <input
+              type="date"
+              value={dateInputValue}
+              onChange={handleDateInputChange}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+              title="選擇日期"
+            />
           </div>
+          
           {!isToday && (
              <button 
                onClick={() => onDateChange(new Date())}
-               className="text-xs text-secondary font-medium mt-0.5 hover:underline"
+               className="text-xs text-secondary font-bold mt-1.5 px-3 py-1 bg-blue-50 rounded-full hover:bg-blue-100 transition-colors"
              >
                回到今天
              </button>
@@ -112,13 +137,14 @@ export const HistoryList: React.FC<HistoryListProps> = ({ entries, onDelete, onU
         <button 
           onClick={() => changeDate(1)}
           disabled={isToday}
-          className={`p-2 rounded-full transition-colors ${
+          className={`p-3 border shadow-sm rounded-2xl transition-all active:scale-95 ${
             isToday 
-              ? 'text-slate-200 cursor-not-allowed' 
-              : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+              ? 'bg-slate-100 border-slate-100 text-slate-300 cursor-not-allowed' 
+              : 'bg-white border-slate-200 text-slate-500 hover:text-secondary hover:border-secondary hover:bg-blue-50'
           }`}
+          title="下一天"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-6 h-6" />
         </button>
       </div>
 
@@ -225,98 +251,4 @@ export const HistoryList: React.FC<HistoryListProps> = ({ entries, onDelete, onU
               </h3>
               <button onClick={() => setEditingEntry(null)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-500 ml-1">食物名稱</label>
-                <input
-                  type="text"
-                  value={editForm.name}
-                  onChange={e => setEditForm({...editForm, name: e.target.value})}
-                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:border-secondary text-slate-800"
-                />
-              </div>
               
-              <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 ml-1">餐別</label>
-                    <select
-                      value={editForm.mealType}
-                      onChange={e => setEditForm({...editForm, mealType: e.target.value as any})}
-                      className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 focus:outline-none focus:border-secondary text-slate-800 text-sm"
-                    >
-                      <option value="breakfast">早餐</option>
-                      <option value="lunch">午餐</option>
-                      <option value="dinner">晚餐</option>
-                      <option value="snack">點心</option>
-                      <option value="lateNight">宵夜</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-slate-500 ml-1">備註 / 份量</label>
-                    <input
-                      type="text"
-                      value={editForm.description}
-                      onChange={e => setEditForm({...editForm, description: e.target.value})}
-                      className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:border-secondary text-slate-800"
-                      placeholder="例如：1碗"
-                    />
-                  </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-500 ml-1">熱量 (kcal)</label>
-                <input
-                  type="number"
-                  value={editForm.calories}
-                  onChange={e => setEditForm({...editForm, calories: e.target.value})}
-                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:border-secondary text-slate-800 font-mono"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-slate-400 ml-1">蛋白質</label>
-                  <input
-                    type="number"
-                    value={editForm.protein}
-                    onChange={e => setEditForm({...editForm, protein: e.target.value})}
-                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm text-center focus:outline-none focus:border-secondary text-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-400 ml-1">碳水</label>
-                  <input
-                    type="number"
-                    value={editForm.carbs}
-                    onChange={e => setEditForm({...editForm, carbs: e.target.value})}
-                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm text-center focus:outline-none focus:border-secondary text-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-400 ml-1">脂肪</label>
-                  <input
-                    type="number"
-                    value={editForm.fat}
-                    onChange={e => setEditForm({...editForm, fat: e.target.value})}
-                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm text-center focus:outline-none focus:border-secondary text-slate-800"
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={handleEditSave}
-                className="w-full bg-secondary hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2"
-              >
-                <Save className="w-5 h-5" />
-                儲存變更
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
