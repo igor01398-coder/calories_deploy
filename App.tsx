@@ -8,7 +8,7 @@ import { BMRCalculator } from './components/BMRCalculator';
 import { RewardCard } from './components/RewardCard';
 import { WaterTracker } from './components/WaterTracker';
 import { UserSwitcher } from './components/UserSwitcher';
-import { Activity, ChevronRight, Calculator, User as UserIcon, Users } from 'lucide-react';
+import { Activity, ChevronRight, Calculator, User as UserIcon, Users, CheckCircle2 } from 'lucide-react';
 import { PRELOADED_FOODS } from './data/foodData';
 
 // Legacy keys for migration
@@ -35,8 +35,20 @@ export default function App() {
   const [isBmrModalOpen, setIsBmrModalOpen] = useState(false);
   const [isUserSwitcherOpen, setIsUserSwitcherOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
   
-  const DAILY_WATER_GOAL = 2500; 
+  // Derived User Profile
+  const currentUserProfile = useMemo(() => 
+    users.find(u => u.id === currentUserId), 
+  [users, currentUserId]);
+
+  // Dynamic Water Goal Calculation: Weight (kg) * 30 ml
+  const dailyWaterGoal = useMemo(() => {
+    if (currentUserProfile?.weight) {
+      return Math.round(currentUserProfile.weight * 30);
+    }
+    return 2000; // Default fallback if no weight is set
+  }, [currentUserProfile?.weight]);
 
   // --- Initialization & Migration ---
   useEffect(() => {
@@ -176,6 +188,15 @@ export default function App() {
     }
   }, [users, isLoaded]);
 
+  // --- Notification Helper ---
+  const showNotification = (message: string) => {
+    setNotification(message);
+    // Clear previous timeout would be ideal but for simplicity we rely on quick overwrites
+    setTimeout(() => {
+      setNotification(prev => prev === message ? null : prev);
+    }, 2500);
+  };
+
   // --- Actions ---
 
   const handleAddUser = (name: string) => {
@@ -240,6 +261,7 @@ export default function App() {
     if (data.dailyGoal) {
       setDailyGoal(data.dailyGoal);
     }
+    showNotification('個人設定已更新！');
   };
 
   const addEntry = (entryData: Omit<FoodEntry, 'id'>) => {
@@ -249,15 +271,18 @@ export default function App() {
     };
     setEntries(prev => [newEntry, ...prev]);
     setSelectedDate(new Date());
+    showNotification('飲食記錄已新增！');
   };
 
   const updateEntry = (updatedEntry: FoodEntry) => {
     setEntries(prev => prev.map(e => e.id === updatedEntry.id ? updatedEntry : e));
+    showNotification('記錄已更新');
   };
 
   const deleteEntry = (id: string) => {
     if (confirm('確定要刪除這筆記錄嗎？')) {
       setEntries(prev => prev.filter(e => e.id !== id));
+      showNotification('記錄已刪除');
     }
   };
 
@@ -293,6 +318,7 @@ export default function App() {
       timestamp
     };
     setWaterLogs(prev => [...prev, newLog]);
+    showNotification(`已新增 ${amount}ml 飲水`);
   };
 
   const handleRemoveWater = (amount: number) => {
@@ -304,6 +330,7 @@ export default function App() {
       timestamp
     };
     setWaterLogs(prev => [...prev, newLog]);
+    showNotification(`已移除 ${amount}ml 飲水`);
   };
 
   // --- Computed Data ---
@@ -374,14 +401,13 @@ export default function App() {
     return { deficit, isWeekend };
   }, [entries, dailyGoal, currentUserId]);
 
-  const currentUserProfile = users.find(u => u.id === currentUserId);
   const caloriePercentage = Math.round((selectedDateTotals.calories / dailyGoal) * 100);
   const isOverLimit = selectedDateTotals.calories > dailyGoal;
 
   if (!isLoaded) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-slate-50 pb-20 relative">
       {/* Header */}
       <header className="bg-white sticky top-0 z-30 shadow-sm border-b border-slate-100">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
@@ -458,7 +484,7 @@ export default function App() {
         {/* Water Tracker */}
         <WaterTracker 
           currentAmount={waterAmount} 
-          goal={DAILY_WATER_GOAL}
+          goal={dailyWaterGoal}
           onAddWater={handleAddWater}
           onRemoveWater={handleRemoveWater}
         />
@@ -485,6 +511,16 @@ export default function App() {
            isWeekend={weeklyRewardData.isWeekend} 
         />
       </main>
+
+      {/* Toast Notification */}
+      {notification && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in zoom-in-95 duration-300">
+          <div className="bg-slate-800/90 backdrop-blur text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-2.5 min-w-[200px] justify-center">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            <span className="font-bold text-sm">{notification}</span>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <BMRCalculator 

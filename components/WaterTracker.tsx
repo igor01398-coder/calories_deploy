@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Droplets, Plus, Minus, CupSoda, Edit3, Check, X } from 'lucide-react';
 
@@ -24,6 +25,13 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({ currentAmount, goal,
     }
   };
 
+  // Circular Chart Configuration
+  const size = 100;
+  const strokeWidth = 8;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (percentage / 100) * circumference;
+
   return (
     <div className="bg-white rounded-3xl shadow-lg border border-blue-100 mb-6 p-5 relative overflow-hidden">
       {/* Background decoration */}
@@ -31,30 +39,55 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({ currentAmount, goal,
         <Droplets className="w-32 h-32 text-blue-600" />
       </div>
 
-      <div className="flex justify-between items-start mb-4 relative z-10">
-        <div>
-          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+      <div className="flex items-center justify-between mb-6 relative z-10">
+        <div className="flex-1 pr-4">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-1">
             <span className="bg-blue-100 p-1.5 rounded-lg text-blue-500">
               <Droplets className="w-4 h-4" />
             </span>
             飲水記錄
           </h3>
-          <p className="text-xs text-slate-400 mt-1">保持水分充足對代謝很重要！</p>
-        </div>
-        <div className="text-right">
-          <div className="text-2xl font-black text-blue-600">
-            {currentAmount} <span className="text-sm font-medium text-slate-400">/ {goal} ml</span>
+          <p className="text-xs text-slate-400 mb-4">保持水分充足對代謝很重要！</p>
+          
+          <div className="flex items-baseline gap-1">
+             <span className="text-3xl font-black text-blue-600 leading-none">
+                {currentAmount}
+             </span>
+             <span className="text-sm font-medium text-slate-400">/ {goal} ml</span>
           </div>
         </div>
-      </div>
 
-      {/* Progress Bar */}
-      <div className="h-4 w-full bg-blue-50 rounded-full overflow-hidden mb-6 relative border border-blue-100 z-10">
-        <div 
-          className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-700 ease-out flex items-center justify-end pr-2"
-          style={{ width: `${percentage}%` }}
-        >
-          {percentage > 20 && <span className="text-[9px] font-bold text-white shadow-sm">{percentage}%</span>}
+        {/* Circular Progress Chart */}
+        <div className="relative flex-shrink-0">
+             {/* SVG Circle */}
+             <svg width={size} height={size} className="transform -rotate-90">
+                {/* Background Ring */}
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="#eff6ff" // blue-50
+                    strokeWidth={strokeWidth}
+                />
+                {/* Progress Ring */}
+                <circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    fill="none"
+                    stroke="#3b82f6" // blue-500
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
+                    strokeLinecap="round"
+                    className="transition-all duration-1000 ease-out"
+                />
+            </svg>
+            {/* Percentage Text Center */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-blue-600">
+                <span className="text-lg font-black">{percentage}%</span>
+            </div>
         </div>
       </div>
 
