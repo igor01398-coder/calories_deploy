@@ -375,6 +375,8 @@ export default function App() {
   }, [entries, dailyGoal, currentUserId]);
 
   const currentUserProfile = users.find(u => u.id === currentUserId);
+  const caloriePercentage = Math.round((selectedDateTotals.calories / dailyGoal) * 100);
+  const isOverLimit = selectedDateTotals.calories > dailyGoal;
 
   if (!isLoaded) return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>;
 
@@ -412,11 +414,26 @@ export default function App() {
         {/* Summary Card */}
         <div className="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden">
           <div className="flex justify-between items-start mb-6 relative z-10">
-            <div>
+            <div className="flex-1 pr-4">
               <h2 className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-1">今日攝取</h2>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-slate-800">{Math.round(selectedDateTotals.calories)}</span>
+              <div className="flex items-baseline gap-1 mb-2">
+                <span className={`text-4xl font-black ${isOverLimit ? 'text-red-500' : 'text-slate-800'}`}>
+                  {Math.round(selectedDateTotals.calories)}
+                </span>
                 <span className="text-sm font-bold text-slate-400">/ {dailyGoal} kcal</span>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="w-full bg-slate-100 rounded-full h-2.5 mb-1 overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-1000 ease-out ${
+                    isOverLimit ? 'bg-red-500' : 'bg-primary'
+                  }`}
+                  style={{ width: `${Math.min(100, caloriePercentage)}%` }}
+                />
+              </div>
+              <div className="text-xs font-bold text-slate-400 text-right">
+                 達成率 {caloriePercentage}%
               </div>
             </div>
             <NutrientChart data={selectedDateTotals} />
