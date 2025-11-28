@@ -38,6 +38,8 @@ export const analyzeFoodWithGemini = async (
   imageBase64?: string
 ): Promise<{ name: string } & NutrientData> => {
   
+  // Use process.env.API_KEY as per guidelines.
+  // The API key must be obtained exclusively from the environment variable process.env.API_KEY.
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = "gemini-2.5-flash";
   const parts: any[] = [];
@@ -91,6 +93,6 @@ export const analyzeFoodWithGemini = async (
     };
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    throw new Error("無法分析食物，請稍後再試或手動輸入。");
+    throw new Error("無法分析食物，請檢查 API Key 設定或網路連線。");
   }
 };
