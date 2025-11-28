@@ -223,7 +223,7 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
     // Save to DB if requested
     if (saveToDb) {
       const newItem: FoodItem = {
-        id: crypto.randomUUID(),
+        id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         name: manualForm.name,
         unit: manualForm.unit,
         calories,
@@ -246,7 +246,8 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
       mealType: getMealTypeByTime()
     });
     setSaveToDb(false);
-    alert('已新增記錄！');
+    
+    alert(`已新增記錄！${saveToDb ? '\n同時已成功加入「我的食物庫」，下次搜尋時會出現。' : ''}`);
   };
 
   return (
@@ -532,7 +533,7 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
                    onChange={e => setSaveToDb(e.target.checked)}
                    className="w-4 h-4 rounded text-secondary focus:ring-secondary border-gray-300"
                  />
-                 <label htmlFor="saveToDb" className="text-sm text-slate-600 cursor-pointer select-none">
+                 <label htmlFor="saveToDb" className="text-sm text-slate-600 cursor-pointer select-none font-bold">
                    同時儲存到「我的食物庫」
                  </label>
               </div>

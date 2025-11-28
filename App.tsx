@@ -265,21 +265,43 @@ export default function App() {
     setCustomFoods(prev => [...prev, item]);
   };
 
+  const getLogTimestampForSelectedDate = () => {
+    const now = new Date();
+    const target = new Date(selectedDate);
+    
+    // Check if selectedDate is "same day" as today
+    const isToday = 
+      now.getFullYear() === target.getFullYear() &&
+      now.getMonth() === target.getMonth() &&
+      now.getDate() === target.getDate();
+
+    if (isToday) {
+      return Date.now();
+    } else {
+      // If adding for a past/future date, use that date but keep current HH:MM:SS to avoid ordering weirdness
+      const d = new Date(selectedDate);
+      d.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+      return d.getTime();
+    }
+  };
+
   const handleAddWater = (amount: number) => {
+    const timestamp = getLogTimestampForSelectedDate();
     const newLog: WaterLog = {
-      id: crypto.randomUUID(),
+      id: `water_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       amount,
-      timestamp: Date.now()
+      timestamp
     };
     setWaterLogs(prev => [...prev, newLog]);
   };
 
   const handleRemoveWater = (amount: number) => {
-     // Log a negative amount to offset
-     const newLog: WaterLog = {
-      id: crypto.randomUUID(),
+    const timestamp = getLogTimestampForSelectedDate();
+    // Log a negative amount to offset
+    const newLog: WaterLog = {
+      id: `water_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       amount: -amount,
-      timestamp: Date.now()
+      timestamp
     };
     setWaterLogs(prev => [...prev, newLog]);
   };
