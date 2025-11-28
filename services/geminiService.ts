@@ -38,7 +38,7 @@ export const analyzeFoodWithGemini = async (
   imageBase64?: string
 ): Promise<{ name: string } & NutrientData> => {
   
-  // Initialize AI client here to ensure env vars are loaded
+  // The API key must be obtained exclusively from the environment variable process.env.API_KEY.
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = "gemini-2.5-flash";
   const parts: any[] = [];
