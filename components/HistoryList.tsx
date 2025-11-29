@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { FoodEntry } from '../types';
 import { Trash2, Clock, Flame, Edit2, X, Save, Coffee, Sun, Moon, Utensils, Star, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
@@ -31,7 +30,11 @@ export const HistoryList: React.FC<HistoryListProps> = ({ entries, onDelete, onU
 
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.value) {
-      onDateChange(new Date(e.target.value));
+      // Parse YYYY-MM-DD manually to create a local date object
+      // This avoids timezone issues where new Date("2023-10-25") creates a UTC date
+      // which might show as the previous day in local time.
+      const [year, month, day] = e.target.value.split('-').map(Number);
+      onDateChange(new Date(year, month - 1, day));
     }
   };
 

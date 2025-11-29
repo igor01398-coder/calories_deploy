@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Image as ImageIcon, Sparkles, X, Loader2, Send, Search, Plus, BookOpen } from 'lucide-react';
 import { analyzeFoodWithGemini } from '../services/geminiService';
@@ -126,30 +127,55 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
   };
 
   const getSuggestions = (value: string) => {
-    if (!value.trim()) return [];
-    const searchTerm = value.toLowerCase();
-    const numericValue = parseFloat(value);
-    const isNumber = !isNaN(numericValue);
+    const trimmed = value.trim().toLowerCase();
+    if (!trimmed) return [];
+
+    // Parse input: extract number and optional unit text (e.g. "100g" -> 100, "g")
+    // Regex matches: start with number (float/int), optional spaces, then rest of string
+    const match = trimmed.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    const inputNumber = match ? parseFloat(match[1]) : NaN;
+    const inputUnit = match ? match[2].trim() : ''; // e.g. "g", "ml", "kcal", or empty
+    const isNumberValid = !isNaN(inputNumber);
 
     return foodDatabase.filter(item => {
-      // 1. Name Match
-      const nameMatch = item.name.toLowerCase().includes(searchTerm);
-      
-      // 2. Nutrient Match (if input is numeric)
-      let nutrientMatch = false;
-      if (isNumber) {
-        // Define tolerance: +/- 20 for calories, +/- 5 for macros
-        const calTolerance = 20;
-        const macroTolerance = 5;
-        
-        nutrientMatch = 
-          Math.abs(item.calories - numericValue) <= calTolerance ||
-          Math.abs(item.protein - numericValue) <= macroTolerance ||
-          Math.abs(item.carbs - numericValue) <= macroTolerance ||
-          Math.abs(item.fat - numericValue) <= macroTolerance;
+      // 1. Name Match (Standard substring match)
+      if (item.name.toLowerCase().includes(trimmed)) return true;
+
+      // 2. Unit Text Match (e.g. input "碗" matches unit "1碗")
+      if (item.unit.toLowerCase().includes(trimmed)) return true;
+
+      // 3. Smart Numeric & Unit Matching
+      if (isNumberValid) {
+        // 3a. Check if the food's unit string contains the number (e.g. input "160" matches unit "160g")
+        if (item.unit.includes(inputNumber.toString())) return true;
+
+        // 3b. Nutrient Tolerance Check
+        const calTolerance = 20; // +/- 20 kcal
+        const macroTolerance = 5; // +/- 5 g
+
+        // If user typed specific unit, prioritize specific fields
+        if (inputUnit.includes('k') || inputUnit.includes('cal')) {
+           // User likely meant calories (e.g., "500kcal")
+           return Math.abs(item.calories - inputNumber) <= calTolerance;
+        }
+
+        // Check macros (standard tolerance)
+        const matchesProtein = Math.abs(item.protein - inputNumber) <= macroTolerance;
+        const matchesCarbs = Math.abs(item.carbs - inputNumber) <= macroTolerance;
+        const matchesFat = Math.abs(item.fat - inputNumber) <= macroTolerance;
+        const matchesCals = Math.abs(item.calories - inputNumber) <= calTolerance;
+
+        // If user typed "g", they probably mean weight OR macro grams. 
+        // Since we don't have weight field for all items, we assume macro grams here.
+        if (inputUnit === 'g') {
+           return matchesProtein || matchesCarbs || matchesFat;
+        }
+
+        // If just a raw number, check everything
+        return matchesCals || matchesProtein || matchesCarbs || matchesFat;
       }
 
-      return nameMatch || nutrientMatch;
+      return false;
     }).slice(0, 50); // Limit results
   };
 
@@ -426,7 +452,7 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
                         }}
                         autoComplete="off"
                         className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 focus:outline-none focus:border-secondary transition-all"
-                        placeholder="搜尋名稱或營養素數值..."
+                        placeholder="搜尋名稱或數值 (如: 100g)"
                         />
                         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 mt-0.5" />
                     </div>
