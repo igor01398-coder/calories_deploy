@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Image as ImageIcon, Sparkles, X, Loader2, Send, Search, Plus, BookOpen } from 'lucide-react';
 import { analyzeFoodWithGemini } from '../services/geminiService';
@@ -50,6 +49,16 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
     unit: '1份',
     mealType: getMealTypeByTime()
   });
+  
+  // New state for quantity scaling
+  const [quantity, setQuantity] = useState<number>(1);
+  const [baseNutrients, setBaseNutrients] = useState({
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0
+  });
+
   const [saveToDb, setSaveToDb] = useState(false);
   
   // Autocomplete State
@@ -211,6 +220,17 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
   };
 
   const selectManualSuggestion = (item: FoodItem) => {
+    // Reset quantity to 1 when selecting a new item
+    setQuantity(1);
+    
+    // Store base nutrients for scaling
+    setBaseNutrients({
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat
+    });
+
     setManualForm(prev => ({
       ...prev,
       name: item.name,
@@ -221,6 +241,35 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
       unit: item.unit
     }));
     setShowSuggestions(false);
+  };
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newQty = parseFloat(e.target.value);
+    setQuantity(newQty);
+
+    if (!isNaN(newQty) && newQty > 0) {
+        setManualForm(prev => ({
+            ...prev,
+            calories: Math.round(baseNutrients.calories * newQty).toString(),
+            protein: Math.round(baseNutrients.protein * newQty).toString(),
+            carbs: Math.round(baseNutrients.carbs * newQty).toString(),
+            fat: Math.round(baseNutrients.fat * newQty).toString(),
+        }));
+    }
+  };
+
+  // If user manually edits a nutrient value, we should update the baseNutrients 
+  // so subsequent quantity changes scale correctly from this new baseline.
+  const handleNutrientManualChange = (field: 'calories' | 'protein' | 'carbs' | 'fat', value: string) => {
+      setManualForm(prev => ({ ...prev, [field]: value }));
+      
+      const numVal = parseFloat(value);
+      if (!isNaN(numVal) && quantity > 0) {
+          setBaseNutrients(prev => ({
+              ...prev,
+              [field]: numVal / quantity // Reverse calculate base value
+          }));
+      }
   };
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -241,21 +290,25 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
       fat,
       timestamp: Date.now(),
       mealType: manualForm.mealType,
-      description: `手動輸入: ${manualForm.unit}`
+      description: quantity !== 1 ? `手動輸入: ${quantity} x ${manualForm.unit}` : `手動輸入: ${manualForm.unit}`
     };
 
     onAddEntry(newEntry);
 
     // Save to DB if requested
     if (saveToDb) {
+      // When saving custom food, we usually save the "Base" (Unit) values, not the scaled total
+      // But user expectation might vary. Here we save what is effectively "1 unit" based on current logic if they selected "Save to DB"
+      // If they typed 2 burgers and hit save, do they mean "2 burgers" is the custom item? 
+      // Usually custom items are single units. Let's save the calculated base values to be safe for re-use.
       const newItem: FoodItem = {
         id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         name: manualForm.name,
-        unit: manualForm.unit,
-        calories,
-        protein,
-        carbs,
-        fat,
+        unit: manualForm.unit, // Keeps original unit string (e.g. "1個")
+        calories: Math.round(baseNutrients.calories || calories), // Fallback to total if base is 0 (manual typing)
+        protein: Math.round(baseNutrients.protein || protein),
+        carbs: Math.round(baseNutrients.carbs || carbs),
+        fat: Math.round(baseNutrients.fat || fat),
         isCustom: true
       };
       onSaveCustomFood(newItem);
@@ -271,6 +324,8 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
       unit: '1份',
       mealType: getMealTypeByTime()
     });
+    setQuantity(1);
+    setBaseNutrients({ calories: 0, protein: 0, carbs: 0, fat: 0 });
     setSaveToDb(false);
     
     alert(`已新增記錄！${saveToDb ? '\n同時已成功加入「我的食物庫」，下次搜尋時會出現。' : ''}`);
@@ -452,7 +507,7 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
                         }}
                         autoComplete="off"
                         className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 focus:outline-none focus:border-secondary transition-all"
-                        placeholder="搜尋名稱或數值 (如: 100g)"
+                        placeholder="搜尋名稱或數值"
                         />
                         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 mt-0.5" />
                     </div>
@@ -493,9 +548,21 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
                  </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                 <div>
-                  <label className="text-xs font-bold text-slate-500 ml-1">份量/單位</label>
+              {/* Quantity, Unit, Calories Row */}
+              <div className="grid grid-cols-4 gap-3">
+                 <div className="col-span-1">
+                   <label className="text-xs font-bold text-slate-500 ml-1">數量</label>
+                   <input
+                     type="number"
+                     min="0.1"
+                     step="0.1"
+                     value={quantity}
+                     onChange={handleQuantityChange}
+                     className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 focus:outline-none focus:border-secondary text-center font-bold text-slate-700"
+                   />
+                 </div>
+                 <div className="col-span-2">
+                  <label className="text-xs font-bold text-slate-500 ml-1">單位</label>
                   <input
                     required
                     type="text"
@@ -505,14 +572,14 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
                     placeholder="例如: 1碗"
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 ml-1">熱量 (kcal)</label>
+                <div className="col-span-1">
+                  <label className="text-xs font-bold text-slate-500 ml-1">熱量</label>
                   <input
                     required
                     type="number"
                     value={manualForm.calories}
-                    onChange={e => setManualForm({...manualForm, calories: e.target.value})}
-                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:border-secondary font-mono"
+                    onChange={e => handleNutrientManualChange('calories', e.target.value)}
+                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 focus:outline-none focus:border-secondary font-mono text-center"
                     placeholder="0"
                   />
                 </div>
@@ -524,7 +591,7 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
                   <input
                     type="number"
                     value={manualForm.protein}
-                    onChange={e => setManualForm({...manualForm, protein: e.target.value})}
+                    onChange={e => handleNutrientManualChange('protein', e.target.value)}
                     className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-secondary text-center"
                     placeholder="0"
                   />
@@ -534,7 +601,7 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
                   <input
                     type="number"
                     value={manualForm.carbs}
-                    onChange={e => setManualForm({...manualForm, carbs: e.target.value})}
+                    onChange={e => handleNutrientManualChange('carbs', e.target.value)}
                     className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-secondary text-center"
                     placeholder="0"
                   />
@@ -544,7 +611,7 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
                   <input
                     type="number"
                     value={manualForm.fat}
-                    onChange={e => setManualForm({...manualForm, fat: e.target.value})}
+                    onChange={e => handleNutrientManualChange('fat', e.target.value)}
                     className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-secondary text-center"
                     placeholder="0"
                   />

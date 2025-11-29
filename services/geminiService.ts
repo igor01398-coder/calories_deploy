@@ -38,8 +38,7 @@ export const analyzeFoodWithGemini = async (
   imageBase64?: string
 ): Promise<{ name: string } & NutrientData> => {
   
-  // Follow @google/genai guidelines: Use process.env.API_KEY directly.
-  // We assume the key is valid and accessible.
+  // The API key must be obtained exclusively from the environment variable process.env.API_KEY.
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = "gemini-2.5-flash";
   const parts: any[] = [];
