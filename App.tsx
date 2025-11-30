@@ -8,6 +8,7 @@ import { BMRCalculator } from './components/BMRCalculator';
 import { RewardCard } from './components/RewardCard';
 import { WaterTracker } from './components/WaterTracker';
 import { UserSwitcher } from './components/UserSwitcher';
+import { DateNavigator } from './components/DateNavigator';
 import { Activity, ChevronRight, Calculator, User as UserIcon, Users, CheckCircle2 } from 'lucide-react';
 import { PRELOADED_FOODS } from './data/foodData';
 
@@ -270,7 +271,8 @@ export default function App() {
       id: crypto.randomUUID(),
     };
     setEntries(prev => [newEntry, ...prev]);
-    setSelectedDate(new Date());
+    // REMOVED: setSelectedDate(new Date()); 
+    // Allowing user to stay on the selected date
     showNotification('飲食記錄已新增！');
   };
 
@@ -489,11 +491,18 @@ export default function App() {
           onRemoveWater={handleRemoveWater}
         />
 
+        {/* Date Navigator - Moved ABOVE FoodEntryForm */}
+        <DateNavigator 
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+        />
+
         {/* Input Form */}
         <FoodEntryForm 
           onAddEntry={addEntry} 
           onSaveCustomFood={handleSaveCustomFood}
           foodDatabase={foodDatabase}
+          selectedDate={selectedDate}
         />
 
         {/* History List */}
@@ -502,7 +511,7 @@ export default function App() {
           onDelete={deleteEntry}
           onUpdate={updateEntry}
           selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
+          // onDateChange is removed from here as navigation is now separate
         />
 
         {/* Reward Card */}

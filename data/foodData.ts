@@ -33,6 +33,12 @@ export const PRELOADED_FOODS: FoodItem[] = [
   { id: 'f108', name: '炸醬麵', unit: '1碗', calories: 550, protein: 18, carbs: 70, fat: 20 },
   { id: 'f109', name: '餛飩麵', unit: '1碗', calories: 450, protein: 18, carbs: 65, fat: 12 },
   { id: 'f110', name: '冬粉 (煮)', unit: '1碗', calories: 140, protein: 0, carbs: 35, fat: 0 },
+  // 新增健康主食
+  { id: 'f230', name: '南瓜 (蒸)', unit: '1碗 (170g)', calories: 100, protein: 2, carbs: 25, fat: 0 },
+  { id: 'f231', name: '玉米 (水煮)', unit: '1根', calories: 140, protein: 5, carbs: 30, fat: 2 },
+  { id: 'f232', name: '芋頭 (蒸)', unit: '1碗', calories: 200, protein: 2, carbs: 45, fat: 0 },
+  { id: 'f233', name: '蕎麥麵', unit: '1碗', calories: 300, protein: 12, carbs: 60, fat: 1 },
+  { id: 'f234', name: '蒟蒻麵', unit: '1包', calories: 20, protein: 0, carbs: 5, fat: 0 },
 
   // --- 便當 / 餐盒類 ---
   { id: 'b001', name: '控肉便當', unit: '1個', calories: 950, protein: 25, carbs: 90, fat: 55 },
@@ -57,9 +63,10 @@ export const PRELOADED_FOODS: FoodItem[] = [
   { id: 'b020', name: '牛丼', unit: '1碗', calories: 750, protein: 25, carbs: 90, fat: 30 },
   { id: 'b021', name: '親子丼', unit: '1碗', calories: 650, protein: 30, carbs: 85, fat: 20 },
 
-  // --- 肉蛋魚豆類 ---
+  // --- 肉蛋魚豆類 (含新增) ---
   { id: 'f021', name: '水煮蛋', unit: '1顆', calories: 75, protein: 7, carbs: 0, fat: 5 },
   { id: 'f022', name: '荷包蛋', unit: '1顆', calories: 120, protein: 7, carbs: 0, fat: 10 },
+  { id: 'f235', name: '雞蛋白', unit: '3顆', calories: 50, protein: 11, carbs: 0, fat: 0 },
   { id: 'f023', name: '雞胸肉', unit: '100g', calories: 110, protein: 23, carbs: 0, fat: 1 },
   { id: 'f024', name: '雞腿', unit: '1支', calories: 250, protein: 20, carbs: 0, fat: 18 },
   { id: 'f025', name: '豬排 (炸)', unit: '1片', calories: 450, protein: 25, carbs: 20, fat: 30 },
@@ -70,6 +77,8 @@ export const PRELOADED_FOODS: FoodItem[] = [
   { id: 'f030', name: '豆漿 (無糖)', unit: '1杯 (240ml)', calories: 80, protein: 8, carbs: 4, fat: 4 },
   { id: 'f031', name: '牛奶 (全脂)', unit: '1杯 (240ml)', calories: 150, protein: 8, carbs: 12, fat: 8 },
   { id: 'f032', name: '希臘優格', unit: '1杯 (150g)', calories: 100, protein: 15, carbs: 6, fat: 0 },
+  { id: 'f237', name: '無糖優格', unit: '1杯 (200g)', calories: 120, protein: 8, carbs: 10, fat: 5 },
+  { id: 'f236', name: '乳清蛋白飲', unit: '1杯 (1匙)', calories: 120, protein: 25, carbs: 3, fat: 1 },
   { id: 'f033', name: '蝦仁', unit: '100g', calories: 100, protein: 20, carbs: 0, fat: 1 },
   { id: 'f034', name: '香腸', unit: '1根', calories: 250, protein: 8, carbs: 5, fat: 22 },
   { id: 'f035', name: '培根', unit: '2片', calories: 90, protein: 6, carbs: 0, fat: 7 },
@@ -88,8 +97,9 @@ export const PRELOADED_FOODS: FoodItem[] = [
   { id: 'f118', name: '肝連', unit: '1份', calories: 180, protein: 20, carbs: 0, fat: 10 },
   { id: 'f119', name: '燙魷魚', unit: '1盤', calories: 120, protein: 20, carbs: 5, fat: 1 },
   { id: 'f120', name: '豬腳 (滷)', unit: '1塊', calories: 300, protein: 20, carbs: 5, fat: 22 },
+  { id: 'f238', name: '納豆', unit: '1盒', calories: 90, protein: 8, carbs: 6, fat: 4 },
 
-  // --- 蔬果類 ---
+  // --- 蔬果類 (大幅擴充) ---
   { id: 'f041', name: '蘋果', unit: '1顆 (中)', calories: 95, protein: 0, carbs: 25, fat: 0 },
   { id: 'f042', name: '香蕉', unit: '1根 (中)', calories: 105, protein: 1, carbs: 27, fat: 0 },
   { id: 'f043', name: '燙青菜', unit: '1份', calories: 50, protein: 2, carbs: 8, fat: 2 },
@@ -109,6 +119,30 @@ export const PRELOADED_FOODS: FoodItem[] = [
   { id: 'f127', name: '小黃瓜 (涼拌)', unit: '1盤', calories: 50, protein: 2, carbs: 8, fat: 2 },
   { id: 'f128', name: '韓式泡菜', unit: '1碟', calories: 40, protein: 2, carbs: 8, fat: 0 },
   { id: 'f129', name: '酪梨', unit: '半顆', calories: 160, protein: 2, carbs: 9, fat: 15 },
+  // 新增蔬菜
+  { id: 'f200', name: '高麗菜 (炒)', unit: '1盤', calories: 70, protein: 2, carbs: 8, fat: 4 },
+  { id: 'f201', name: '菠菜 (燙)', unit: '1盤', calories: 40, protein: 3, carbs: 6, fat: 1 },
+  { id: 'f202', name: '空心菜 (炒)', unit: '1盤', calories: 60, protein: 2, carbs: 6, fat: 4 },
+  { id: 'f203', name: '地瓜葉 (燙)', unit: '1盤', calories: 45, protein: 3, carbs: 8, fat: 1 },
+  { id: 'f204', name: '金針菇', unit: '1包', calories: 40, protein: 3, carbs: 8, fat: 0 },
+  { id: 'f205', name: '杏鮑菇', unit: '1支(大)', calories: 40, protein: 3, carbs: 8, fat: 0 },
+  { id: 'f206', name: '玉米筍', unit: '1份 (100g)', calories: 30, protein: 2, carbs: 6, fat: 0 },
+  { id: 'f207', name: '竹筍 (涼拌)', unit: '1盤', calories: 50, protein: 2, carbs: 10, fat: 1 },
+  { id: 'f208', name: '絲瓜', unit: '1碗', calories: 40, protein: 1, carbs: 8, fat: 1 },
+  { id: 'f209', name: '苦瓜', unit: '1份', calories: 30, protein: 1, carbs: 6, fat: 1 },
+  { id: 'f210', name: '洋蔥', unit: '1顆', calories: 40, protein: 1, carbs: 10, fat: 0 },
+  { id: 'f211', name: '紅蘿蔔', unit: '半根', calories: 30, protein: 1, carbs: 7, fat: 0 },
+  { id: 'f212', name: '小白菜 (燙)', unit: '1盤', calories: 35, protein: 2, carbs: 5, fat: 1 },
+  { id: 'f213', name: '秋葵', unit: '1份', calories: 35, protein: 2, carbs: 7, fat: 0 },
+  // 新增水果
+  { id: 'f220', name: '火龍果', unit: '1顆', calories: 120, protein: 2, carbs: 28, fat: 0 },
+  { id: 'f221', name: '百香果', unit: '2顆', calories: 35, protein: 1, carbs: 8, fat: 0 },
+  { id: 'f222', name: '柚子', unit: '2瓣', calories: 60, protein: 1, carbs: 15, fat: 0 },
+  { id: 'f223', name: '藍莓', unit: '1盒 (125g)', calories: 70, protein: 1, carbs: 18, fat: 0 },
+  { id: 'f224', name: '草莓', unit: '10顆', calories: 40, protein: 1, carbs: 10, fat: 0 },
+  { id: 'f225', name: '小番茄', unit: '10顆', calories: 35, protein: 1, carbs: 8, fat: 0 },
+  { id: 'f226', name: '檸檬', unit: '1顆', calories: 20, protein: 1, carbs: 7, fat: 0 },
+  { id: 'f227', name: '櫻桃', unit: '10顆', calories: 50, protein: 1, carbs: 12, fat: 0 },
 
   // --- 台灣小吃 / 夜市 / 常見餐點 ---
   { id: 'f051', name: '牛肉麵', unit: '1碗', calories: 700, protein: 40, carbs: 80, fat: 25 },

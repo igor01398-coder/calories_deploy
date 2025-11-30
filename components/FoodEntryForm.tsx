@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, X, Loader2, Send, Search, Plus, BookOpen } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, X, Loader2, Send, Search, Plus, BookOpen, Filter } from 'lucide-react';
 import { analyzeFoodWithGemini } from '../services/geminiService';
 import { FoodEntry, AnalysisStatus, FoodItem } from '../types';
 
@@ -7,9 +8,11 @@ interface FoodEntryFormProps {
   onAddEntry: (entry: Omit<FoodEntry, 'id'>) => void;
   onSaveCustomFood: (item: FoodItem) => void;
   foodDatabase: FoodItem[];
+  selectedDate: Date;
 }
 
 type Tab = 'ai' | 'manual';
+type SearchFilter = 'all' | 'custom' | 'default';
 
 const MEAL_TYPES: { value: FoodEntry['mealType']; label: string }[] = [
   { value: 'breakfast', label: '早餐' },
@@ -19,7 +22,7 @@ const MEAL_TYPES: { value: FoodEntry['mealType']; label: string }[] = [
   { value: 'lateNight', label: '宵夜' },
 ];
 
-export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSaveCustomFood, foodDatabase }) => {
+export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSaveCustomFood, foodDatabase, selectedDate }) => {
   const [activeTab, setActiveTab] = useState<Tab>('ai');
   
   const getMealTypeByTime = (): FoodEntry['mealType'] => {
@@ -61,9 +64,10 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
 
   const [saveToDb, setSaveToDb] = useState(false);
   
-  // Autocomplete State
+  // Autocomplete & Filter State
   const [suggestions, setSuggestions] = useState<FoodItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchFilter, setSearchFilter] = useState<SearchFilter>('all');
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Update meal type when component mounts
@@ -86,6 +90,13 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
     };
   }, [wrapperRef]);
 
+  // Re-run search when filter changes (only if there is input)
+  useEffect(() => {
+    if (activeTab === 'manual' && manualForm.name.trim()) {
+      setSuggestions(getSuggestions(manualForm.name));
+    }
+  }, [searchFilter]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -94,6 +105,28 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
         setSelectedImage(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // Helper to generate timestamp for the selected date but with current time
+  const getEntryTimestamp = () => {
+    const now = new Date();
+    const target = new Date(selectedDate);
+    
+    // Check if selectedDate is "same day" as today
+    const isToday = 
+      now.getFullYear() === target.getFullYear() &&
+      now.getMonth() === target.getMonth() &&
+      now.getDate() === target.getDate();
+
+    if (isToday) {
+      return Date.now();
+    } else {
+      // Use the selected date, but apply the current HH:MM:SS 
+      // so entries are added "at the end" of that day's log visually if sorted by time,
+      // or simply preserving the time the user performed the action.
+      target.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+      return target.getTime();
     }
   };
 
@@ -112,10 +145,10 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
         protein: result.protein,
         carbs: result.carbs,
         fat: result.fat,
-        timestamp: Date.now(),
+        timestamp: getEntryTimestamp(), // Use calculated timestamp
         imageUrl: selectedImage || undefined,
         description: textInput,
-        mealType: aiMealType, // Use the user-selected meal type
+        mealType: aiMealType, 
       };
 
       onAddEntry(newEntry);
@@ -123,7 +156,6 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
       // Reset form
       setTextInput('');
       setSelectedImage(null);
-      // Reset meal type to current time for next entry
       setAiMealType(getMealTypeByTime());
       setStatus(AnalysisStatus.SUCCESS);
       setTimeout(() => setStatus(AnalysisStatus.IDLE), 2000);
@@ -139,53 +171,42 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
     const trimmed = value.trim().toLowerCase();
     if (!trimmed) return [];
 
-    // Parse input: extract number and optional unit text (e.g. "100g" -> 100, "g")
-    // Regex matches: start with number (float/int), optional spaces, then rest of string
     const match = trimmed.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
     const inputNumber = match ? parseFloat(match[1]) : NaN;
-    const inputUnit = match ? match[2].trim() : ''; // e.g. "g", "ml", "kcal", or empty
+    const inputUnit = match ? match[2].trim() : '';
     const isNumberValid = !isNaN(inputNumber);
 
     return foodDatabase.filter(item => {
-      // 1. Name Match (Standard substring match)
-      if (item.name.toLowerCase().includes(trimmed)) return true;
+      if (searchFilter === 'custom' && !item.isCustom) return false;
+      if (searchFilter === 'default' && item.isCustom) return false;
 
-      // 2. Unit Text Match (e.g. input "碗" matches unit "1碗")
+      if (item.name.toLowerCase().includes(trimmed)) return true;
       if (item.unit.toLowerCase().includes(trimmed)) return true;
 
-      // 3. Smart Numeric & Unit Matching
       if (isNumberValid) {
-        // 3a. Check if the food's unit string contains the number (e.g. input "160" matches unit "160g")
         if (item.unit.includes(inputNumber.toString())) return true;
 
-        // 3b. Nutrient Tolerance Check
-        const calTolerance = 20; // +/- 20 kcal
-        const macroTolerance = 5; // +/- 5 g
+        const calTolerance = 20; 
+        const macroTolerance = 5; 
 
-        // If user typed specific unit, prioritize specific fields
         if (inputUnit.includes('k') || inputUnit.includes('cal')) {
-           // User likely meant calories (e.g., "500kcal")
            return Math.abs(item.calories - inputNumber) <= calTolerance;
         }
 
-        // Check macros (standard tolerance)
         const matchesProtein = Math.abs(item.protein - inputNumber) <= macroTolerance;
         const matchesCarbs = Math.abs(item.carbs - inputNumber) <= macroTolerance;
         const matchesFat = Math.abs(item.fat - inputNumber) <= macroTolerance;
         const matchesCals = Math.abs(item.calories - inputNumber) <= calTolerance;
 
-        // If user typed "g", they probably mean weight OR macro grams. 
-        // Since we don't have weight field for all items, we assume macro grams here.
         if (inputUnit === 'g') {
            return matchesProtein || matchesCarbs || matchesFat;
         }
 
-        // If just a raw number, check everything
         return matchesCals || matchesProtein || matchesCarbs || matchesFat;
       }
 
       return false;
-    }).slice(0, 50); // Limit results
+    }).slice(0, 50);
   };
 
   const handleAiTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,10 +241,7 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
   };
 
   const selectManualSuggestion = (item: FoodItem) => {
-    // Reset quantity to 1 when selecting a new item
     setQuantity(1);
-    
-    // Store base nutrients for scaling
     setBaseNutrients({
         calories: item.calories,
         protein: item.protein,
@@ -258,8 +276,6 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
     }
   };
 
-  // If user manually edits a nutrient value, we should update the baseNutrients 
-  // so subsequent quantity changes scale correctly from this new baseline.
   const handleNutrientManualChange = (field: 'calories' | 'protein' | 'carbs' | 'fat', value: string) => {
       setManualForm(prev => ({ ...prev, [field]: value }));
       
@@ -267,7 +283,7 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
       if (!isNaN(numVal) && quantity > 0) {
           setBaseNutrients(prev => ({
               ...prev,
-              [field]: numVal / quantity // Reverse calculate base value
+              [field]: numVal / quantity 
           }));
       }
   };
@@ -281,31 +297,25 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
     const carbs = parseInt(manualForm.carbs) || 0;
     const fat = parseInt(manualForm.fat) || 0;
 
-    // Add to daily log
     const newEntry: Omit<FoodEntry, 'id'> = {
       name: manualForm.name,
       calories,
       protein,
       carbs,
       fat,
-      timestamp: Date.now(),
+      timestamp: getEntryTimestamp(), // Use calculated timestamp
       mealType: manualForm.mealType,
       description: quantity !== 1 ? `手動輸入: ${quantity} x ${manualForm.unit}` : `手動輸入: ${manualForm.unit}`
     };
 
     onAddEntry(newEntry);
 
-    // Save to DB if requested
     if (saveToDb) {
-      // When saving custom food, we usually save the "Base" (Unit) values, not the scaled total
-      // But user expectation might vary. Here we save what is effectively "1 unit" based on current logic if they selected "Save to DB"
-      // If they typed 2 burgers and hit save, do they mean "2 burgers" is the custom item? 
-      // Usually custom items are single units. Let's save the calculated base values to be safe for re-use.
       const newItem: FoodItem = {
         id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         name: manualForm.name,
-        unit: manualForm.unit, // Keeps original unit string (e.g. "1個")
-        calories: Math.round(baseNutrients.calories || calories), // Fallback to total if base is 0 (manual typing)
+        unit: manualForm.unit, 
+        calories: Math.round(baseNutrients.calories || calories), 
         protein: Math.round(baseNutrients.protein || protein),
         carbs: Math.round(baseNutrients.carbs || carbs),
         fat: Math.round(baseNutrients.fat || fat),
@@ -314,7 +324,6 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
       onSaveCustomFood(newItem);
     }
 
-    // Reset
     setManualForm({
       name: '',
       calories: '',
@@ -328,7 +337,7 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
     setBaseNutrients({ calories: 0, protein: 0, carbs: 0, fat: 0 });
     setSaveToDb(false);
     
-    alert(`已新增記錄！${saveToDb ? '\n同時已成功加入「我的食物庫」，下次搜尋時會出現。' : ''}`);
+    // Notification handled by App
   };
 
   return (
@@ -492,7 +501,45 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
             <form onSubmit={handleManualSubmit} className="space-y-3">
               <div className="grid grid-cols-3 gap-3">
                  <div className="col-span-2 relative" ref={activeTab === 'manual' ? wrapperRef : null}>
-                    <label className="text-xs font-bold text-slate-500 ml-1">食物名稱</label>
+                    <div className="flex justify-between items-center mb-1 ml-1">
+                        <label className="text-xs font-bold text-slate-500">食物名稱</label>
+                        {/* Search Filter Toggles */}
+                        <div className="flex gap-1">
+                            <button
+                                type="button"
+                                onClick={() => setSearchFilter('all')}
+                                className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                                    searchFilter === 'all' 
+                                    ? 'bg-secondary text-white border-secondary' 
+                                    : 'bg-slate-100 text-slate-400 border-slate-100'
+                                }`}
+                            >
+                                全部
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSearchFilter('custom')}
+                                className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                                    searchFilter === 'custom' 
+                                    ? 'bg-purple-500 text-white border-purple-500' 
+                                    : 'bg-slate-100 text-slate-400 border-slate-100'
+                                }`}
+                            >
+                                我的
+                            </button>
+                             <button
+                                type="button"
+                                onClick={() => setSearchFilter('default')}
+                                className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                                    searchFilter === 'default' 
+                                    ? 'bg-orange-400 text-white border-orange-400' 
+                                    : 'bg-slate-100 text-slate-400 border-slate-100'
+                                }`}
+                            >
+                                預設
+                            </button>
+                        </div>
+                    </div>
                     <div className="relative">
                         <input
                         required
@@ -522,29 +569,34 @@ export const FoodEntryForm: React.FC<FoodEntryFormProps> = ({ onAddEntry, onSave
                                     onClick={() => selectManualSuggestion(item)}
                                     className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-50 last:border-none flex justify-between items-center group"
                                 >
-                                    <div>
-                                        <div className="font-bold text-slate-800 text-sm group-hover:text-secondary">{item.name}</div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <div className="font-bold text-slate-800 text-sm group-hover:text-secondary truncate">{item.name}</div>
+                                            {item.isCustom && <span className="text-[9px] bg-purple-100 text-purple-600 px-1.5 rounded-sm font-bold flex-shrink-0">我的</span>}
+                                        </div>
                                         <div className="text-xs text-slate-400">{item.unit} • {item.calories} kcal</div>
                                     </div>
-                                    <Plus className="w-4 h-4 text-slate-300 group-hover:text-secondary" />
+                                    <Plus className="w-4 h-4 text-slate-300 group-hover:text-secondary flex-shrink-0 ml-2" />
                                 </button>
                             ))}
                         </div>
                     )}
                  </div>
                  <div>
-                    <label className="text-xs font-bold text-slate-500 ml-1">餐別</label>
-                    <select
-                      value={manualForm.mealType}
-                      onChange={e => setManualForm({...manualForm, mealType: e.target.value as any})}
-                      className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 focus:outline-none focus:border-secondary text-sm appearance-none"
-                    >
-                      <option value="breakfast">早餐</option>
-                      <option value="lunch">午餐</option>
-                      <option value="dinner">晚餐</option>
-                      <option value="snack">點心</option>
-                      <option value="lateNight">宵夜</option>
-                    </select>
+                    <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">餐別</label>
+                    <div className="pt-[1px]"> {/* Alignment Spacer */}
+                        <select
+                        value={manualForm.mealType}
+                        onChange={e => setManualForm({...manualForm, mealType: e.target.value as any})}
+                        className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 focus:outline-none focus:border-secondary text-sm appearance-none"
+                        >
+                        <option value="breakfast">早餐</option>
+                        <option value="lunch">午餐</option>
+                        <option value="dinner">晚餐</option>
+                        <option value="snack">點心</option>
+                        <option value="lateNight">宵夜</option>
+                        </select>
+                    </div>
                  </div>
               </div>
 
